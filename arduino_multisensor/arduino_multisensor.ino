@@ -8,6 +8,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 const int micPin     = A0;   // KY-037 analog
 const int waterPin   = A1;   // Water sensor analog
 const int gasPin     = A2;   // MQ-2 analog OUT
+const int vibPin     = 4;    // SW-1801P digital OUT
 const int pirPin     = 2;    // HC-SR501 OUT
 const int ledPin     = 13;   // Built-in LED
 const int extLedPin  = 3;    // External LED (motion only)
@@ -27,10 +28,8 @@ const unsigned long PAGE_MS = 3000; // 3s per view
 unsigned long lastPageMs = 0;
 int page = 0; // 0: Gas+Sound, 1: Sound+Water, 2: Water+Gas
 
-// ---- Motion -> Serial email trigger ----
-bool lastMotion = false;
-unsigned long lastMotionEmailMs = 0;
-const unsigned long MOTION_COOLDOWN_MS = 60000; // 1 min
+unsigned long lastPrint = 0;
+const unsigned long PRINT_PERIOD = 1000;  // print every 1s
 
 void setup() {
   Serial.begin(115200);           // <<< for Python/Serial Monitor
@@ -39,6 +38,7 @@ void setup() {
   lcd.backlight();
 
   pinMode(pirPin, INPUT);
+  pinMode(vibPin, INPUT);
   pinMode(ledPin, OUTPUT);
   pinMode(extLedPin, OUTPUT);
   digitalWrite(ledPin, LOW);
@@ -62,6 +62,7 @@ void loop() {
 
   // PIR motion detection
   bool motion  = (digitalRead(pirPin) == HIGH);  // HC-SR501 is usually active-HIGH
+  bool vibration  = (digitalRead(vibPin) == LOW);  // SW-1801P
 
   // DHT every ~2s
   unsigned long now = millis();
@@ -72,18 +73,18 @@ void loop() {
     lastDhtMs = now;
   }
 
-  // ---- Motion rising-edge -> print one line for email trigger ----
-  if (motion && !lastMotion && (now - lastMotionEmailMs >= MOTION_COOLDOWN_MS)) {
-    // One tidy line your Python can parse
-    Serial.print("MOTION:1;");
-    Serial.print("GAS=");   Serial.print(gasValue);   Serial.print(';');
-    Serial.print("SND=");   Serial.print(soundValue); Serial.print(';');
-    Serial.print("WTR=");   Serial.print(waterValue); Serial.print(';');
-    Serial.print("TEMP=");  Serial.print(tempC);      Serial.print(';');
-    Serial.print("HUM=");   Serial.println(hum);
-    lastMotionEmailMs = now;
-  }
-  lastMotion = motion;
+ if (now - lastPrint >= PRINT_PERIOD) {
+  Serial.print("{");
+  Serial.print("\"gas\":"); Serial.print(gasValue); Serial.print(",");
+  Serial.print("\"sound\":"); Serial.print(soundValue); Serial.print(",");
+  Serial.print("\"water\":"); Serial.print(waterValue); Serial.print(",");
+  Serial.print("\"temp\":"); Serial.print(tempC); Serial.print(",");
+  Serial.print("\"humidity\":"); Serial.print(hum); Serial.print(",");
+  Serial.print("\"motion\":"); Serial.print(motion ? 1 : 0); Serial.print(",");
+  Serial.print("\"vibration\":"); Serial.print(vibration ? 1 : 0); 
+  Serial.println("}");
+  lastPrint = now;
+}
 
   // Rotate line 1 every 3s
   if (now - lastPageMs >= PAGE_MS) {
