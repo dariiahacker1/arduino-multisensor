@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""
-Motion mailer: listens to Arduino over Serial and emails on MOTION:1 lines.
-
-Arduino must print lines like:
-  MOTION:1;GAS=512;SND=88;WTR=300;TEMP=23.4;HUM=41.0
-
-Requires:
-  pip install pyserial certifi
-Also make a Gmail App Password (Google Account → Security → App passwords).
-"""
-
 import time
 import os
 import smtplib
@@ -32,7 +20,6 @@ TO_EMAIL = os.getenv("TO_EMAIL")
 APP_PASS = os.getenv("APP_PASS")
 READ_TIMEOUT_S = 1
 # ======================================
-
 
 def parse_motion(line: str) -> dict | None:
     """
