@@ -14,7 +14,7 @@ matplotlib.use("MacOSX")
 
 # ====== .env ======
 load_dotenv()
-SERIAL_PORT = os.getenv("SERIAL_PORT", "/dev/cu.usbserial-1110")
+SERIAL_PORT = os.getenv("SERIAL_PORT", "/dev/cu.usbserial-110")
 BAUD = int(os.getenv("BAUD", 115200))
 COOLDOWN_S = int(os.getenv("COOLDOWN_S", 60))
 FROM_EMAIL = os.getenv("FROM_EMAIL")
